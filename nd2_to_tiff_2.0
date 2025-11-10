@@ -1,0 +1,69 @@
+// Macro ImageJ/Fiji: Batch_ND2_to_TIFF_SPLIT.ijm
+
+// ====================================================================
+// CONFIGURACIÓN DE RUTAS (¡VERIFICA Y AJUSTA!)
+// NOTA: Usa barras normales (/) y la ruta DEBE terminar en una barra (/)
+// ====================================================================
+input_dir = "C:/Users/ThinkStation/Desktop/USUARIOS/AaronCastillo/Imagenesprueba/imagenes_nd2/";
+output_dir = "C:/Users/ThinkStation/Desktop/USUARIOS/AaronCastillo/Imagenesprueba/imagenes_tiff_raw/";
+// ====================================================================
+
+File.makeDirectory(output_dir);
+list = getFileList(input_dir); 
+
+if (lengthOf(list) == 0) {
+    print("❌ ERROR CRÍTICO: No se encontraron archivos ND2 en la ruta: " + input_dir);
+    exit(); 
+} else {
+    print("✅ Encontrados " + lengthOf(list) + " items en el directorio de entrada.");
+}
+
+// Iterar sobre cada archivo
+for (i = 0; i < list.length; i++) {
+    
+    if (endsWith(list[i], ".nd2")) {
+        
+        full_path = input_dir + list[i];
+        
+        // 1. Abrir el hyperstack con Bio-Formats
+        run("Bio-Formats Importer", "open=[" + full_path + "] autoscale color_mode=Default view=Hyperstack stack_order=XYCZT");
+        
+        // Obtener el título de la ventana y el nombre base
+        image_title = getTitle();
+        base_name = replace(image_title, ".nd2", "");
+        
+        // 2. --- ¡Forzar la separación de canales! ---
+        run("Split Channels");
+        
+        // 3. Guardar cada canal por separado (con el nombre que Python espera)
+        
+        // Guardar Canal 1 (Núcleo A / C00)
+        selectWindow("C1-" + image_title);
+        save_path_c00 = output_dir + base_name + "_C00.tif";
+        saveAs("Tiff", save_path_c00);
+        close();
+
+        // Guardar Canal 2 (Pared Celular / C01)
+        selectWindow("C2-" + image_title);
+        save_path_c01 = output_dir + base_name + "_C01.tif";
+        saveAs("Tiff", save_path_c01);
+        close();
+
+        // Guardar Canal 3 (Núcleo B / C02)
+        selectWindow("C3-" + image_title);
+        save_path_c02 = output_dir + base_name + "_C02.tif";
+        saveAs("Tiff", save_path_c02);
+        close();
+        
+        // 4. Cerrar la imagen original
+        if (isOpen(image_title)) {
+             selectWindow(image_title);
+             close();
+        }
+        
+        print("✅ Convertido y SEPARADO: " + list[i]);
+    }
+}
+
+print("==========================================");
+print("Conversión de ND2 a TIFF (Canales Separados) COMPLETADA.");
